@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useState } from "react";
 import { getCurrentUser } from "../api/auth.js";
 import toast from "react-hot-toast";
+import { refreshToken } from "../api/auth.js";
 
 const AuthContext = createContext({
   user: null,
@@ -22,29 +23,47 @@ export const AuthProvider = ({ children }) => {
     setUser(null);
   };
 
+
+
   useEffect(() => {
     const fetchUser = async () => {
       try {
+        // 1️⃣ Try normal request
         const res = await getCurrentUser();
-
+  
         const userData =
           res.data?.data?.user ||
           res.data?.user ||
           res.data?.data;
-
+  
         setUser(userData);
-
+  
       } catch (err) {
+        // 2️⃣ If access token expired → try refresh
         if (err.response?.status === 401) {
-          setUser(null);
-          toast.error("Session expired");
+          try {
+            await refreshToken(); // 🔥 KEY STEP
+  
+            // Retry after refresh
+            const res = await getCurrentUser();
+  
+            const userData =
+              res.data?.data?.user ||
+              res.data?.user ||
+              res.data?.data;
+  
+            setUser(userData);
+  
+          } catch (refreshErr) {
+            setUser(null);
+            toast.error("Session expired");
+          }
         }
       } finally {
-        // 🔥 THIS WAS MISSING
         setLoading(false);
       }
     };
-
+  
     fetchUser();
   }, []);
 
