@@ -4,7 +4,7 @@ import { Toaster } from "react-hot-toast";
 
 import MainLayout from "./layouts/mainLayout.jsx";
 
-import Login from "./pages/login.jsx";
+import Login from "./pages/Login.jsx";
 import Register from "./pages/Register.jsx";
 import Dashboard from "./pages/Dashboard.jsx";
 import PrivateRoute from "./components/PrivateRoute.jsx";
