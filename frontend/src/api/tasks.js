@@ -1,7 +1,7 @@
 import axios from "./axios";
 
 const API = axios.create({
-    baseURL: "https://taskmanager-u7vk.onrender.com/api/v1",
+    baseURL: import.meta.env.VITE_API_URL,
     withCredentials: true,
   });
 
