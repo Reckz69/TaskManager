@@ -2,61 +2,41 @@ import axios from "axios";
 
 const API = axios.create({
   baseURL: import.meta.env.VITE_API_URL,
-  withCredentials: true,
-});
-/**
- * 🔐 REQUEST INTERCEPTOR
- * Adds access token to every request
- */
-API.interceptors.request.use((config) => {
-  const token = localStorage.getItem("accessToken");
-
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
-  }
-
-  return config;
+  withCredentials: true, // ✅ IMPORTANT for cookies
 });
 
 /**
  * 🔁 RESPONSE INTERCEPTOR
- * Handles token refresh (but skips logout)
+ * Handles token refresh using cookies (no localStorage)
  */
 API.interceptors.response.use(
   (response) => response,
   async (error) => {
     const originalRequest = error.config;
 
-    // ❗ Skip refresh logic for logout
+    // ❗ Prevent infinite loop
+    if (originalRequest?._retry) {
+      return Promise.reject(error);
+    }
+
+    // ❗ Skip logout
     if (originalRequest?.url?.includes("/users/logout")) {
       return Promise.reject(error);
     }
 
-    // 🔄 Handle expired access token
-    if (error.response?.status === 401 && !originalRequest._retry) {
+    // 🔄 Handle 401 (expired access token)
+    if (error.response?.status === 401) {
       originalRequest._retry = true;
 
       try {
-        const response = await axios.post(
-          "https://taskmanager-u7vk.onrender.com/api/v1/users/refresh-token",
-          {},
-          { withCredentials: true }
-        );
+        // 🔥 Refresh using COOKIE (no body needed)
+        await API.post("/users/refresh-token");
 
-        const { accessToken } = response.data.data;
-
-        // Save new token
-        localStorage.setItem("accessToken", accessToken);
-
-        // Retry original request
-        originalRequest.headers.Authorization = `Bearer ${accessToken}`;
+        // 🔁 Retry original request
         return API(originalRequest);
 
       } catch (refreshError) {
-        // ❌ Session expired completely
-        localStorage.removeItem("accessToken");
-        localStorage.removeItem("refreshToken");
-
+        // ❌ Session expired → redirect
         window.location.href = "/login";
         return Promise.reject(refreshError);
       }
@@ -66,7 +46,7 @@ API.interceptors.response.use(
   }
 );
 
-// 🔗 API CALLS
+// 🔗 API CALLS (unchanged)
 export const loginUser = (data) => API.post("/users/login", data);
 export const registerUser = (data) => API.post("/users/register", data);
 export const getCurrentUser = () => API.get("/users/me");
