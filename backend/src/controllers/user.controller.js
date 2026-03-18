@@ -136,9 +136,10 @@ const loggedOutUser = asyncHandler(async(req, res) => {
     console.log(req.user)
 
     const options = {
-        httpOnly : true,
-        secure: true
-    }
+        httpOnly: true,
+        secure: true,      // ✅ required for HTTPS
+        sameSite: "none"   // ✅ required for cross-origin
+      };
 
     return res
     .status(200)
